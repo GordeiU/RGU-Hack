@@ -3,16 +3,22 @@ import numpy as np
 import dlib
 from math import hypot
 import time
+import os
+import win32com.client as wincl
 
 cap = cv2.VideoCapture(0)
-board = np.zeros((300, 1400), np.uint8)
+file_output = ""
+board = np.zeros((300, 1500), np.uint8)
 board[:] = 255
 
 detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor("C:\\Users\\Gordei\\Desktop\\OxfordHack\\shape_predictor_68_face_landmarks.dat")
 
-# Keyboard settings
 keyboard = np.zeros((600, 1000, 3), np.uint8)
+
+# Bellow is the keyboard setup it's basically splits the entire keyboard in half so that you could iterate 
+# through it in a timely maner
+
 keys_set_1 = {0: "Q", 1: "W", 2: "E", 3: "R", 4: "T",
               5: "A", 6: "S", 7: "D", 8: "F", 9: "G",
               10: "Z", 11: "X", 12: "C", 13: "V", 14: "<"}
@@ -21,52 +27,27 @@ keys_set_2 = {0: "Y", 1: "U", 2: "I", 3: "O", 4: "P",
               10: "V", 11: "B", 12: "N", 13: "M", 14: "<"}
 
 def draw_letters(letter_index, text, letter_light):
-    # Keys
-    if letter_index == 0:
-        x = 0
-        y = 0
-    elif letter_index == 1:
-        x = 200
-        y = 0
-    elif letter_index == 2:
-        x = 400
-        y = 0
-    elif letter_index == 3:
-        x = 600
-        y = 0
-    elif letter_index == 4:
-        x = 800
-        y = 0
-    elif letter_index == 5:
-        x = 0
-        y = 200
-    elif letter_index == 6:
-        x = 200
-        y = 200
-    elif letter_index == 7:
-        x = 400
-        y = 200
-    elif letter_index == 8:
-        x = 600
-        y = 200
-    elif letter_index == 9:
-        x = 800
-        y = 200
-    elif letter_index == 10:
-        x = 0
-        y = 400
-    elif letter_index == 11:
-        x = 200
-        y = 400
-    elif letter_index == 12:
-        x = 400
-        y = 400
-    elif letter_index == 13:
-        x = 600
-        y = 400
-    elif letter_index == 14:
-        x = 800
-        y = 400
+    
+    switcher = {
+        0: [0,0],
+        1: [200,0],
+        2: [400,0],
+        3: [600,0],
+        4: [800,0],
+        5: [0,200],
+        6: [200,200],
+        7: [400,200],
+        8: [600,200],
+        9: [800,200],
+        10: [0,400],
+        11: [200,400],
+        12: [400,400],
+        13: [600,400],
+        14: [800,400]
+    }
+
+    x = switcher[letter_index][0]
+    y = switcher[letter_index][1]
 
     width = 200
     height = 200
@@ -75,26 +56,26 @@ def draw_letters(letter_index, text, letter_light):
     # Text settings
     font_letter = cv2.FONT_HERSHEY_PLAIN
     font_scale = 10
-    font_th = 4
-    text_size = cv2.getTextSize(text, font_letter, font_scale, font_th)[0]
+    thickness = 10
+    text_size = cv2.getTextSize(text, font_letter, font_scale, thickness)[0]
     width_text, height_text = text_size[0], text_size[1]
     text_x = int((width - width_text) / 2) + x
     text_y = int((height + height_text) / 2) + y
 
     if letter_light is True:
         cv2.rectangle(keyboard, (x + th, y + th), (x + width - th, y + height - th), (255, 255, 255), -1)
-        cv2.putText(keyboard, text, (text_x, text_y), font_letter, font_scale, (51, 51, 51), font_th)
+        cv2.putText(keyboard, text, (text_x, text_y), font_letter, font_scale, (51, 51, 51), thickness)
     else:
         cv2.rectangle(keyboard, (x + th, y + th), (x + width - th, y + height - th), (51, 51, 51), -1)
-        cv2.putText(keyboard, text, (text_x, text_y), font_letter, font_scale, (255, 255, 255), font_th)
+        cv2.putText(keyboard, text, (text_x, text_y), font_letter, font_scale, (255, 255, 255), thickness)
 
 def draw_menu():
     rows, cols, _ = keyboard.shape
-    th_lines = 4 # thickness lines
+    th_lines = 2 # thickness lines
     cv2.line(keyboard, (int(cols/2) - int(th_lines/2), 0),(int(cols/2) - int(th_lines/2), rows),
              (51, 51, 51), th_lines)
-    cv2.putText(keyboard, "LEFT", (80, 300), font, 6, (255, 255, 255), 5)
-    cv2.putText(keyboard, "RIGHT", (80 + int(cols/2), 300), font, 6, (255, 255, 255), 5)
+    cv2.putText(keyboard, "LEFT", (80, 300), font, 6, (255, 255, 255), 10)
+    cv2.putText(keyboard, "RIGHT", (80 + int(cols/2), 300), font, 6, (255, 255, 255), 10)
 
 def midpoint(p1 ,p2):
     return int((p1.x + p2.x)/2), int((p1.y + p2.y)/2)
@@ -172,7 +153,7 @@ def get_gaze_ratio(eye_points, facial_landmarks):
 frames = 0
 letter_index = 0
 blinking_frames = 0
-frames_to_blink = 6
+blink_frames = 6
 frames_active_letter = 9
 
 # Text and keyboard settings
@@ -201,6 +182,7 @@ while True:
         keys_set = keys_set_1
     else:
         keys_set = keys_set_2
+    
     active_letter = keys_set[letter_index]
 
     # Face detection
@@ -253,7 +235,6 @@ while True:
         else:
             # Detect the blinking to select the key that is lighting up
             if blinking_ratio > 5:
-                # cv2.putText(frame, "BLINKING", (50, 150), font, 4, (255, 0, 0), thickness=3)
                 blinking_frames += 1
                 frames -= 1
 
@@ -262,7 +243,7 @@ while True:
                 cv2.polylines(frame, [right_eye], True, (0, 255, 0), 2)
 
                 # Typing letter
-                if blinking_frames == frames_to_blink:
+                if blinking_frames == blink_frames:
                     if active_letter != "<" and active_letter != "_":
                         text += active_letter
                     if active_letter == "_":
@@ -278,9 +259,8 @@ while True:
     if select_keyboard_menu is False:
         if frames == frames_active_letter:
             letter_index += 1
+            letter_index %= 15
             frames = 0
-        if letter_index == 15:
-            letter_index = 0
         for i in range(15):
             if i == letter_index:
                 light = True
@@ -289,21 +269,34 @@ while True:
             draw_letters(i, keys_set[i], light)
 
     # Show the text we're writing on the board
-    cv2.putText(board, text, (80, 100), font, 9, 0, 3)
-
+    cv2.putText(board, text, (80, 100), font, 9, 0, 10)
+    if text != file_output:
+        file_output = text
+    
     # Blinking loading bar
-    percentage_blinking = blinking_frames / frames_to_blink
+    percentage_blinking = blinking_frames / blink_frames
     loading_x = int(cols * percentage_blinking)
-    cv2.rectangle(frame, (0, rows - 50), (loading_x, rows), (51, 51, 51), -1)
+    cv2.rectangle(frame, (0, rows - 50), (loading_x, rows), (0, 250, 0), -1)
 
 
-    cv2.imshow("Cam", frame)
-    cv2.imshow("Virtual keyboard", keyboard)
-    cv2.imshow("Board", board)
+    cv2.imshow("Camera", frame)
+    cv2.moveWindow("Camera", 50, 500)
+    cv2.imshow("Keyboard", keyboard)
+    cv2.imshow("Text", board)
+    cv2.moveWindow("Text", 50, 25)
 
     key = cv2.waitKey(1)
     if key == 27:
         break
+
+save_path = "C:\\Users\\Gordei\\Desktop\\OxfordHack"
+completeName = os.path.join(save_path, "output.txt")         
+file1 = open(completeName, "w")
+file1.write(file_output)
+file1.close()
+
+speak = wincl.Dispatch("SAPI.SpVoice")
+speak.Speak(file_output)
 
 cap.release()
 cv2.destroyAllWindows()

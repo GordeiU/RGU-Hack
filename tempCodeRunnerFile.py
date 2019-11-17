@@ -1,1 +1,1 @@
-RIGHT
+name_of_file
