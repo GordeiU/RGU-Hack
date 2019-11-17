@@ -7,7 +7,6 @@ import os
 import win32com.client as wincl
 
 cap = cv2.VideoCapture(0)
-file_output = ""
 board = np.zeros((300, 1500), np.uint8)
 board[:] = 255
 
@@ -64,18 +63,18 @@ def draw_letters(letter_index, text, letter_light):
 
     if letter_light is True:
         cv2.rectangle(keyboard, (x + th, y + th), (x + width - th, y + height - th), (255, 255, 255), -1)
-        cv2.putText(keyboard, text, (text_x, text_y), font_letter, font_scale, (51, 51, 51), thickness)
+        cv2.putText(keyboard, text, (text_x, text_y), font_letter, font_scale, (0, 0, 0), thickness)
     else:
-        cv2.rectangle(keyboard, (x + th, y + th), (x + width - th, y + height - th), (51, 51, 51), -1)
-        cv2.putText(keyboard, text, (text_x, text_y), font_letter, font_scale, (255, 255, 255), thickness)
+        cv2.rectangle(keyboard, (x + th, y + th), (x + width - th, y + height - th), (100, 150, 255), -1)
+        cv2.putText(keyboard, text, (text_x, text_y), font_letter, font_scale, (0, 0, 0), thickness)
 
 def draw_menu():
     rows, cols, _ = keyboard.shape
-    th_lines = 2 # thickness lines
+    th_lines = 2
     cv2.line(keyboard, (int(cols/2) - int(th_lines/2), 0),(int(cols/2) - int(th_lines/2), rows),
-             (51, 51, 51), th_lines)
-    cv2.putText(keyboard, "LEFT", (80, 300), font, 6, (255, 255, 255), 10)
-    cv2.putText(keyboard, "RIGHT", (80 + int(cols/2), 300), font, 6, (255, 255, 255), 10)
+             (0, 0, 0), th_lines)
+    cv2.putText(keyboard, "LEFT", (80, 300), font, 6, (100, 150, 255), 10)
+    cv2.putText(keyboard, "RIGHT", (80 + int(cols/2), 300), font, 6, (100, 150, 255), 10)
 
 def midpoint(p1 ,p2):
     return int((p1.x + p2.x)/2), int((p1.y + p2.y)/2)
@@ -123,7 +122,7 @@ def get_gaze_ratio(eye_points, facial_landmarks):
 
     height, width, _ = frame.shape
     mask = np.zeros((height, width), np.uint8)
-    cv2.polylines(mask, [left_eye_region], True, 255, 2)
+    cv2.polylines(mask, [left_eye_region], True, 255, 1)
     cv2.fillPoly(mask, [left_eye_region], 255)
     eye = cv2.bitwise_and(gray, gray, mask=mask)
 
@@ -158,16 +157,16 @@ frames_active_letter = 9
 
 # Text and keyboard settings
 text = ""
-keyboard_selected = "left"
-last_keyboard_selected = "left"
-select_keyboard_menu = True
+keyboard_selected = "right"
+last_keyboard_selected = "right"
+select_keyboard_menu = False
 keyboard_selection_frames = 0
 
 while True:
     _, frame = cap.read()
     frame = cv2.resize(frame, None, fx=0.8, fy=0.8)
     rows, cols, _ = frame.shape
-    keyboard[:] = (26, 26, 26)
+    keyboard[:] = (0, 0, 0)
     frames += 1
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
@@ -203,16 +202,17 @@ while True:
 
 
         if select_keyboard_menu is True:
+            
             # Detecting gaze to select Left or Right keybaord
             gaze_ratio_left_eye = get_gaze_ratio([36, 37, 38, 39, 40, 41], landmarks)
             gaze_ratio_right_eye = get_gaze_ratio([42, 43, 44, 45, 46, 47], landmarks)
             gaze_ratio = (gaze_ratio_right_eye + gaze_ratio_left_eye) / 2
 
-            if gaze_ratio <= 0.9:
+            if gaze_ratio <= 0.9: #XXXXXXXXXXXXXXXXXXXXXX
                 keyboard_selected = "right"
                 keyboard_selection_frames += 1
-                # If Kept gaze on one side more than 15 frames, move to keyboard
-                if keyboard_selection_frames == 15:
+
+                if keyboard_selection_frames == 3:
                     select_keyboard_menu = False
                     # Set frames count to 0 when keyboard selected
                     frames = 0
@@ -220,11 +220,11 @@ while True:
                 if keyboard_selected != last_keyboard_selected:
                     last_keyboard_selected = keyboard_selected
                     keyboard_selection_frames = 0
+                    
             else:
                 keyboard_selected = "left"
                 keyboard_selection_frames += 1
-                # If Kept gaze on one side more than 15 frames, move to keyboard
-                if keyboard_selection_frames == 15:
+                if keyboard_selection_frames == 7:
                     select_keyboard_menu = False
                     # Set frames count to 0 when keyboard selected
                     frames = 0
@@ -239,8 +239,8 @@ while True:
                 frames -= 1
 
                 # Show green eyes when closed
-                cv2.polylines(frame, [left_eye], True, (0, 255, 0), 2)
-                cv2.polylines(frame, [right_eye], True, (0, 255, 0), 2)
+                #cv2.polylines(frame, [left_eye], True, (0, 255, 0), 2)
+                #cv2.polylines(frame, [right_eye], True, (0, 255, 0), 2)
 
                 # Typing letter
                 if blinking_frames == blink_frames:
@@ -249,7 +249,7 @@ while True:
                     if active_letter == "_":
                         text += " "
                     select_keyboard_menu = True
-                    time.sleep(1)
+                    time.sleep(.5)
 
             else:
                 blinking_frames = 0
@@ -270,20 +270,16 @@ while True:
 
     # Show the text we're writing on the board
     cv2.putText(board, text, (80, 100), font, 9, 0, 10)
-    if text != file_output:
-        file_output = text
     
     # Blinking loading bar
     percentage_blinking = blinking_frames / blink_frames
     loading_x = int(cols * percentage_blinking)
-    cv2.rectangle(frame, (0, rows - 50), (loading_x, rows), (0, 250, 0), -1)
+    cv2.rectangle(frame, (0, rows - 50), (loading_x, rows), (100, 150, 255), -1)
 
 
-    cv2.imshow("Camera", frame)
-    cv2.moveWindow("Camera", 50, 500)
+    #cv2.imshow("Camera", frame)
     cv2.imshow("Keyboard", keyboard)
     cv2.imshow("Text", board)
-    cv2.moveWindow("Text", 50, 25)
 
     key = cv2.waitKey(1)
     if key == 27:
@@ -292,11 +288,11 @@ while True:
 save_path = "C:\\Users\\Gordei\\Desktop\\OxfordHack"
 completeName = os.path.join(save_path, "output.txt")         
 file1 = open(completeName, "w")
-file1.write(file_output)
+file1.write(text)
 file1.close()
 
 speak = wincl.Dispatch("SAPI.SpVoice")
-speak.Speak(file_output)
+speak.Speak(text)
 
 cap.release()
 cv2.destroyAllWindows()
