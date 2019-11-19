@@ -277,7 +277,7 @@ while True:
     cv2.rectangle(frame, (0, rows - 50), (loading_x, rows), (100, 150, 255), -1)
 
 
-    #cv2.imshow("Camera", frame)
+    cv2.imshow("Camera", frame)
     cv2.imshow("Keyboard", keyboard)
     cv2.imshow("Text", board)
 
