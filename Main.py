@@ -11,7 +11,7 @@ board = np.zeros((300, 1500), np.uint8)
 board[:] = 255
 
 detector = dlib.get_frontal_face_detector()
-predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
+predictor = dlib.shape_predictor("Shapes.dat")
 
 keyboard = np.zeros((600, 1000, 3), np.uint8)
 
