@@ -4,26 +4,26 @@ import dlib
 from math import hypot
 import time
 import os
-import win32com.client as wincl
+import webbrowser
 
 cap = cv2.VideoCapture(0)
 board = np.zeros((300, 1500), np.uint8)
 board[:] = 255
 
 detector = dlib.get_frontal_face_detector()
-predictor = dlib.shape_predictor("C:\\Users\\Gordei\\Desktop\\OxfordHack\\shape_predictor_68_face_landmarks.dat")
+predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
 
 keyboard = np.zeros((600, 1000, 3), np.uint8)
 
 # Bellow is the keyboard setup it's basically splits the entire keyboard in half so that you could iterate 
 # through it in a timely maner
 
-keys_set_1 = {0: "Q", 1: "W", 2: "E", 3: "R", 4: "T",
-              5: "A", 6: "S", 7: "D", 8: "F", 9: "G",
-              10: "Z", 11: "X", 12: "C", 13: "V", 14: "<"}
-keys_set_2 = {0: "Y", 1: "U", 2: "I", 3: "O", 4: "P",
-              5: "H", 6: "J", 7: "K", 8: "L", 9: "_",
-              10: "V", 11: "B", 12: "N", 13: "M", 14: "<"}
+keys_set_1 = {0: ["Q", "https://shoe.sandwichmelody.com/rgu/"], 1: ["W"], 2: ["E"], 3: ["R"], 4: ["T"],
+              5: ["A"], 6: ["S"], 7: ["D"], 8: ["F"], 9: ["G"],
+              10: ["Z"], 11: ["X"], 12: ["C"], 13: ["V"], 14: ["<"]}
+keys_set_2 = {0: ["Y"], 1: ["U"], 2: ["I"], 3: ["O"], 4: ["P"],
+              5: ["H"], 6: ["J"], 7: ["K"], 8: ["L"], 9: ["_"],
+              10: ["V"], 11: ["B"], 12: ["N"], 13: ["M"], 14: ["<"]}
 
 def draw_letters(letter_index, text, letter_light):
     
@@ -62,19 +62,19 @@ def draw_letters(letter_index, text, letter_light):
     text_y = int((height + height_text) / 2) + y
 
     if letter_light is True:
-        cv2.rectangle(keyboard, (x + th, y + th), (x + width - th, y + height - th), (255, 255, 255), -1)
-        cv2.putText(keyboard, text, (text_x, text_y), font_letter, font_scale, (0, 0, 0), thickness)
+        cv2.rectangle(keyboard, (x + th, y + th), (x + width - th, y + height - th), (216, 164, 33), -1)
+        cv2.putText(keyboard, text, (text_x, text_y), font_letter, font_scale, (255, 255, 255), thickness)
     else:
-        cv2.rectangle(keyboard, (x + th, y + th), (x + width - th, y + height - th), (100, 150, 255), -1)
-        cv2.putText(keyboard, text, (text_x, text_y), font_letter, font_scale, (0, 0, 0), thickness)
+        cv2.rectangle(keyboard, (x + th, y + th), (x + width - th, y + height - th), (113, 33, 119), -1)
+        cv2.putText(keyboard, text, (text_x, text_y), font_letter, font_scale, (255, 255, 255), thickness)
 
 def draw_menu():
     rows, cols, _ = keyboard.shape
     th_lines = 2
     cv2.line(keyboard, (int(cols/2) - int(th_lines/2), 0),(int(cols/2) - int(th_lines/2), rows),
              (0, 0, 0), th_lines)
-    cv2.putText(keyboard, "LEFT", (80, 300), font, 6, (100, 150, 255), 10)
-    cv2.putText(keyboard, "RIGHT", (80 + int(cols/2), 300), font, 6, (100, 150, 255), 10)
+    cv2.putText(keyboard, "LEFT", (80, 300), font, 6, (113, 33, 119), 10)
+    cv2.putText(keyboard, "RIGHT", (80 + int(cols/2), 300), font, 6, (113, 33, 119), 10)
 
 def midpoint(p1 ,p2):
     return int((p1.x + p2.x)/2), int((p1.y + p2.y)/2)
@@ -118,7 +118,7 @@ def get_gaze_ratio(eye_points, facial_landmarks):
                                 (facial_landmarks.part(eye_points[3]).x, facial_landmarks.part(eye_points[3]).y),
                                 (facial_landmarks.part(eye_points[4]).x, facial_landmarks.part(eye_points[4]).y),
                                 (facial_landmarks.part(eye_points[5]).x, facial_landmarks.part(eye_points[5]).y)], np.int32)
-    cv2.polylines(frame, [left_eye_region], True, (0, 0, 255), 2)
+    cv2.polylines(frame, [left_eye_region], True, (113, 33, 119), 2)
 
     height, width, _ = frame.shape
     mask = np.zeros((height, width), np.uint8)
@@ -157,8 +157,8 @@ frames_active_letter = 9
 
 # Text and keyboard settings
 text = ""
-keyboard_selected = "right"
-last_keyboard_selected = "right"
+keyboard_selected = "left"
+last_keyboard_selected = "left"
 select_keyboard_menu = False
 keyboard_selection_frames = 0
 
@@ -207,8 +207,9 @@ while True:
             gaze_ratio_left_eye = get_gaze_ratio([36, 37, 38, 39, 40, 41], landmarks)
             gaze_ratio_right_eye = get_gaze_ratio([42, 43, 44, 45, 46, 47], landmarks)
             gaze_ratio = (gaze_ratio_right_eye + gaze_ratio_left_eye) / 2
+            print(gaze_ratio_left_eye, gaze_ratio_right_eye ,gaze_ratio)
 
-            if gaze_ratio <= 0.9: #XXXXXXXXXXXXXXXXXXXXXX
+            if gaze_ratio < .6:
                 keyboard_selected = "right"
                 keyboard_selection_frames += 1
 
@@ -221,7 +222,7 @@ while True:
                     last_keyboard_selected = keyboard_selected
                     keyboard_selection_frames = 0
                     
-            else:
+            elif gaze_ratio >= .6:
                 keyboard_selected = "left"
                 keyboard_selection_frames += 1
                 if keyboard_selection_frames == 7:
@@ -231,10 +232,13 @@ while True:
                 if keyboard_selected != last_keyboard_selected:
                     last_keyboard_selected = keyboard_selected
                     keyboard_selection_frames = 0
+            else:
+                print("WTF")
+            keyboard_selection_frames = keyboard_selection_frames%15
 
         else:
             # Detect the blinking to select the key that is lighting up
-            if blinking_ratio > 5:
+            if blinking_ratio > 4:
                 blinking_frames += 1
                 frames -= 1
 
@@ -244,12 +248,16 @@ while True:
 
                 # Typing letter
                 if blinking_frames == blink_frames:
-                    if active_letter != "<" and active_letter != "_":
-                        text += active_letter
-                    if active_letter == "_":
-                        text += " "
-                    select_keyboard_menu = True
-                    time.sleep(.5)
+                    try:
+                        webbrowser.open(active_letter[1])
+                        text += active_letter[0]
+                    except:
+                        if active_letter[0] != "<" and active_letter[0] != "_":
+                            text += active_letter[0]
+                        elif active_letter == "_":
+                            text += " "
+                        select_keyboard_menu = True
+                        time.sleep(.5)
 
             else:
                 blinking_frames = 0
@@ -266,7 +274,7 @@ while True:
                 light = True
             else:
                 light = False
-            draw_letters(i, keys_set[i], light)
+            draw_letters(i, keys_set[i][0], light)
 
     # Show the text we're writing on the board
     cv2.putText(board, text, (80, 100), font, 9, 0, 10)
@@ -285,14 +293,12 @@ while True:
     if key == 27:
         break
 
-save_path = "C:\\Users\\Gordei\\Desktop\\OxfordHack"
-completeName = os.path.join(save_path, "output.txt")         
-file1 = open(completeName, "w")
+file1 = open("output.txt", "w")
 file1.write(text)
 file1.close()
 
-speak = wincl.Dispatch("SAPI.SpVoice")
-speak.Speak(text)
+#speak = wincl.Dispatch("SAPI.SpVoice")
+#speak.Speak(text)
 
 cap.release()
 cv2.destroyAllWindows()
